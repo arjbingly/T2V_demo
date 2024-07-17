@@ -18,7 +18,7 @@ with st.sidebar:
         repo = "ByteDance/AnimateDiff-Lightning"
         ckpt = f"animatediff_lightning_{step}step_diffusers.safetensors"
         base = st.selectbox('Base Model',
-                            ["Lykon/DreamShaper", "emilianJR/epiCRealism"])
+                            ["emilianJR/epiCRealism", "Lykon/DreamShaper"])
 
 
         submitted = st.form_submit_button(
@@ -37,6 +37,35 @@ with st.sidebar:
             # st.session_state.pipe.enable_vae_slicing()
             # st.session_state.pipe.enable_model_cpu_offload()
         st.success("Model Loaded")
+
+    with st.form('MotionLoRA'):
+        st.info('MotionLoRA')
+        motion_models = {
+            "None": None,
+            "pan left" : "guoyww/animatediff-motion-lora-pan-left",
+            "pan right" :"guoyww/animatediff-motion-lora-pan-right",
+            "roll anticlockwise" : "guoyww/animatediff-motion-lora-rolling-anticlockwise",
+            "roll clockwise" :"guoyww/animatediff-motion-lora-rolling-clockwise",
+            "tilt down" : "guoyww/animatediff-motion-lora-tilt-down",
+            "tilt up" : "guoyww/animatediff-motion-lora-tilt-up",
+            "zoom in" : "guoyww/animatediff-motion-lora-zoom-in",
+            "zoom out" :"guoyww/animatediff-motion-lora-zoom-out",
+        }
+        m_model = st.selectbox('Motion Model',
+                            motion_models.keys())
+
+        msubmitted = st.form_submit_button(
+            "Load MotionLoRA", type="primary", use_container_width=True)
+
+    if msubmitted:
+        if 'pipe' in st.session_state:
+            if motion_models[m_model]:
+                with st.status("Loading Motion Model"):
+                    st.session_state.pipe.load_lora_weights(
+                        motion_models[m_model], adapter_name=m_model
+                    )
+        else:
+            st.error("No model has been loaded")
 
 
 with st.form("t2i"):
@@ -87,12 +116,17 @@ if generate:
         file_ = open("../animation.gif", "rb")
         contents = file_.read()
         data_url = base64.b64encode(contents).decode("utf-8")
-        file_.close()
 
         st.markdown(
             f'<img src="data:image/gif;base64,{data_url}" alt="generated gif">',
             unsafe_allow_html=True,
         )
+        st.download_button(
+            label="Download",
+            data=file_,
+            file_name="animation.gif",
+        )
+        file_.close()
 
     else:
         st.error("No model has been loaded")
