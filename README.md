@@ -3,9 +3,6 @@
 The task presented was to create a demo of a Text2Video model with the
 context that such a solution could be provided to a client. 
 
-## TODO
--  Add Motion LoRAs as they produce stronger motion
-
 ## How to get started?
 - make sure to install the dependecies listed in the `requiremnts.txt`
 - execute in terminal , `streamlit run animate-diff-app.py`
