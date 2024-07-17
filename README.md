@@ -26,18 +26,30 @@ tailor to a final product.
 distilled from the original AnimateDiff SD1.5 v2
 
 ## UI
-I have also made a simple UI using Streamlit to showcase the models performance. 
-![img.png](img.png)
+I have also made a simple UI using Streamlit to showcase the model performance.
+![img_1.png](img_1.png)
+
+- The sidebar gives the user the choice for choosing the distillation of the `AnimeteDiff-Lightning` model, generally the
+larger the distillation the smaller the model and hence faster but in the expense of quality. It also lets the user
+choose the base model, currently a choice of two models are provided `emilianJR/epiCRealism` and `Lykon/DreamShaper`. 
+- The lower section of the sidebar gives the user the option to add MotionLoRA adaptors, these as the name suggests
+imparts more motion to the generation. Various choices including pan-left, pan-right, zoom-in, zoom-out, etc are provided.
+- The main section of the webpage lets the user provide the various settings for generating the image, including the prompts, 
+guidance scale, the number of denoising steps, and the number of frames. Note that the small question mark next to each settings 
+provides a help statement to the user.
 
 ### Some example generation
 Prompt: A smiling girl.  
-Base Diffusion Model: `emilianJR/epiCRealism`
+Base Diffusion Model: `emilianJR/epiCRealism`  
 ![animation](animation2.gif)
 
-_Some not so desirable_  
-Prompt: A boy playing.  
-Base Diffusion Model: `emilianJR/epiCRealism`
-![animation.gif](animation.gif)
+
+
+_With motion adaptors_  
+Prompt: A prancing hourse.  
+Base Diffusion Model: `emilianJR/epiCRealism` 
+MotionLoRA Model: `guoyww/animatediff-motion-lora-pan-left`  
+![animation](animation1.gif)
 
 
 ## Limitations
@@ -49,3 +61,4 @@ frames to 10 and number of denoising steps to 7. Moreover the most distilled ver
 - Prompt optimizations have not been done and could possibly improve results, similarly more through hyper-parameter 
 optimization could also yield better results.
 - Only a few number of diffusion T2I models were tested on. 
+- The UI is very basic and does not look the best. 
