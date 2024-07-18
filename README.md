@@ -20,7 +20,7 @@ new motion patterns, such as different shot types, at a low training and data co
  - The huge community behind AnimateDiff and MotionLoRA also enables fast prototyping and need for less R&D to 
 tailor to a final product.
  - Since computational resources available to me are limited, I have used AnimateDiff-Lightning which is a fast model 
-distilled from the original AnimateDiff SD1.5 v2
+distilled from the original AnimateDiff SD1.5 v2. Said to imporove generation speeds by more than 10x.
 
 ## UI
 I have also made a simple UI using Streamlit to showcase the model performance.
@@ -44,8 +44,8 @@ Base Diffusion Model: `emilianJR/epiCRealism`
 
 _With motion adaptors_  
 Prompt: A prancing hourse.  
-Base Diffusion Model: `emilianJR/epiCRealism` 
-MotionLoRA Model: `guoyww/animatediff-motion-lora-pan-left`  
+Base Diffusion Model: `emilianJR/epiCRealism`  
+MotionLoRA Model: `guoyww/animatediff-motion-lora-pan-left`    
 ![animation](animation1.gif)
 
 
@@ -56,6 +56,10 @@ frames to 10 and number of denoising steps to 7. Moreover the most distilled ver
 
 ## Possible improvements
 - Prompt optimizations have not been done and could possibly improve results, similarly more through hyper-parameter 
-optimization could also yield better results.
+optimization (like the choice of schedulers) could also yield better results.
+- This model also allows the use of SparseCtrl, where the user can provide a sketch or an image as reference.
+- This model is also compatitiable with FreeInit, which could help with temporal consistency and video quality in the
+expense of compute.
+- Currently the demo only supports the use of a single MotionLoRA module and that too without contorl over its weight. 
 - Only a few number of diffusion T2I models were tested on. 
 - The UI is very basic and does not look the best. 
