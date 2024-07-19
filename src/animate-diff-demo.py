@@ -1,30 +1,38 @@
 import torch
-from diffusers import AnimateDiffPipeline, MotionAdapter, EulerDiscreteScheduler
+from diffusers import AnimateDiffPipeline, MotionAdapter, EulerDiscreteScheduler, DDIMScheduler
 from diffusers.utils import export_to_gif
 from huggingface_hub import hf_hub_download
 from safetensors.torch import load_file
 
 device = "mps"
-dtype = torch.float16
 
-step = 8  # Options: [1,2,4,8]
-repo = "ByteDance/AnimateDiff-Lightning"
-ckpt = f"animatediff_lightning_{step}step_diffusers.safetensors"
-base = "emilianJR/epiCRealism"  # Choose to your favorite base model.
-# base = "Lykon/DreamShaper"
+repo = "guoyww/animatediff-motion-adapter-v1-5"
+base = "SG161222/Realistic_Vision_V5.1_noVAE"
 
-adapter = MotionAdapter().to(device, dtype)
-adapter.load_state_dict(load_file(hf_hub_download(repo ,ckpt), device=device))
-
-pipe = AnimateDiffPipeline.from_pretrained(base, motion_adapter=adapter, torch_dtype=dtype).to(device)
-# Add Motion LoRA
-
-pipe.load_lora_weights(
-    "guoyww/animatediff-motion-lora-zoom-out", adapter_name="zoom-out"
+# Load the motion adapter
+adapter = MotionAdapter.from_pretrained(repo).to(device)
+# load SD 1.5 based finetuned model
+pipe = AnimateDiffPipeline.from_pretrained(base, motion_adapter=adapter).to(device)
+scheduler = DDIMScheduler.from_pretrained(
+    base, subfolder="scheduler", clip_sample=False, timestep_spacing="linspace", steps_offset=1
 )
+pipe.scheduler = scheduler
 
-pipe.scheduler = EulerDiscreteScheduler.from_config(pipe.scheduler.config, timestep_spacing="trailing", beta_schedule="linear")
+# enable memory savings
+# pipe.enable_vae_slicing()
+# pipe.enable_model_cpu_offload()
 
-# output = pipe(prompt="A girl smiling", guidance_scale=1.0, num_inference_steps=step)
-output = pipe(prompt="A girl smiling", guidance_scale=1.0, num_inference_steps=10)
-export_to_gif(output.frames[0], "./animation.gif")
+output = pipe(
+    prompt=(
+        "masterpiece, bestquality, highlydetailed, ultradetailed, sunset, "
+        "orange sky, warm lighting, fishing boats, ocean waves seagulls, "
+        "rippling water, wharf, silhouette, serene atmosphere, dusk, evening glow, "
+        "golden hour, coastal landscape, seaside scenery"
+    ),
+    negative_prompt="bad quality, worse quality",
+    num_frames=10,
+    guidance_scale=7.5,
+    num_inference_steps=10,
+)
+frames = output.frames[0]
+export_to_gif(frames, "animation_v1-5.gif")

@@ -22,6 +22,17 @@ tailor to a final product.
  - Since computational resources available to me are limited, I have used AnimateDiff-Lightning which is a fast model 
 distilled from the original AnimateDiff SD1.5 v2. Said to imporove generation speeds by more than 10x.
 
+### Other Models
+
+#### Text2Video-Zero
+This model is similar to the one used as it uses a diffution based model for T2I to create videos.  However, the AnimateDiff
+paper which came out after the Text2Video-Zero compares the two models where the AnimateDiff seems to be better in many cases.
+
+#### Open-Sora
+Open Sora is an Open Source T2V model. It seems to be able to produce much higher quality videos with the ability to handle
+longer prompts but with the downside needing fine-tuning to adhere to any particular style, etc. 
+
+
 ## UI
 I have also made a simple UI using Streamlit to showcase the model performance.
 ![img_1.png](img_1.png)
@@ -62,4 +73,11 @@ optimization (like the choice of schedulers) could also yield better results.
 expense of compute.
 - Currently the demo only supports the use of a single MotionLoRA module and that too without contorl over its weight. 
 - Only a few number of diffusion T2I models were tested on. 
-- The UI is very basic and does not look the best. 
+- The UI is very basic and does not look the best.
+
+
+## Files
+
+- `animate-diff-app.py`: Streamlit app
+- `animate-diff-demo.py`: Sample script for AnimateDiff model
+- `animate-diff-lightning-demo.py`: Sample script for AnimateDiff-Lightning model
