@@ -19,8 +19,13 @@ models without requiring model-specific tuning.
 new motion patterns, such as different shot types, at a low training and data collection cost.
  - The huge community behind AnimateDiff and MotionLoRA also enables fast prototyping and need for less R&D to 
 tailor to a final product.
- - Since computational resources available to me are limited, I have used AnimateDiff-Lightning which is a fast model 
-distilled from the original AnimateDiff SD1.5 v2. Said to imporove generation speeds by more than 10x.
+ - Since computational resources available to me are limited, I initially used AnimateDiff-Lightning which is a fast model 
+distilled from the original AnimateDiff SD1.5 v2. Said to imporove generation speeds by more than 10x. This is partly
+achieved by requiring no guidance and very few denoising steps.
+
+### Optimizations
+- Even with the use of the distilled model, half-precision (float16) had to used to achieve sub 3 min generation times. 
+- Moreover, attension slicing was used to avoid memory overruns espeically with the non-distilled versions.
 
 ### Other Models
 
@@ -63,6 +68,7 @@ MotionLoRA Model: `guoyww/animatediff-motion-lora-pan-left`
 ## Limitations
 - Due to the limited computational resources, to keep the generation time to below 3 minutes. I had to limit number of 
 frames to 10 and number of denoising steps to 7. Moreover the most distilled version of the model was used. 
+- Most methods to reduce memory usage or for faster inferece are not supported by Apple Silicon.
 
 
 ## Possible improvements

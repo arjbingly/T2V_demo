@@ -1,41 +1,102 @@
+import gc
+
 import streamlit as st
 import torch
-from diffusers import AnimateDiffPipeline, MotionAdapter, EulerDiscreteScheduler
+from diffusers import AnimateDiffPipeline, MotionAdapter, EulerDiscreteScheduler, DDIMScheduler
 from diffusers.utils import export_to_gif
 from huggingface_hub import hf_hub_download
 from safetensors.torch import load_file
 import base64
+import time
 
 st.set_page_config("T2V demo",)
-st.title("AnimateDiff-Lightning T2V Demo")
+st.title("AnimateDiff T2V Demo")
 
 with st.sidebar:
-    with st.form("model_config"):
-        st.info('Model Configs')
-        device = "mps"
-        dtype = torch.float16
-        step = st.selectbox('Model Distillation Step', [2, 4, 8], index=2)
-        repo = "ByteDance/AnimateDiff-Lightning"
-        ckpt = f"animatediff_lightning_{step}step_diffusers.safetensors"
-        base = st.selectbox('Base Model',
-                            ["emilianJR/epiCRealism", "Lykon/DreamShaper"])
+    st.info('Model Configs')
+    st.session_state.model_type = st.selectbox('AnimateDiff Model',
+                                  ['lightning', 'original'])
 
+    if st.session_state.model_type == 'lightning':
+        st.session_state.step = st.selectbox('Model Distillation Step', [2, 4, 8], index=2)
+    elif st.session_state.model_type == 'original':
+        st.session_state.version = st.selectbox('Model Version', ['v1', 'v2', 'v3'], index=2)
 
-        submitted = st.form_submit_button(
-            "Load Model", type="primary", use_container_width=True)
+    st.session_state.device = st.selectbox('Compute Device',
+                              ['mps', 'cpu'])
+    # dtype = torch.float16
+    st.session_state.base = st.selectbox('Base Model',
+                            ["emilianJR/epiCRealism",
+                             "Lykon/DreamShaper",
+                             "SG161222/Realistic_Vision_V6.0_B1_noVAE"])
+
+    submitted = st.button(
+        "Load Model", type="primary", use_container_width=True)
+
+    clear_mem = st.button(
+        "Clear Memory", type="secondary", use_container_width=True)
+
+    if clear_mem:
+        if 'adaptor' in st.session_state:
+            st.info('Cleared adaptor')
+            del(st.session_state.adapter)
+        if 'pipe' in st.session_state:
+            st.info('Cleared pipline')
+            del(st.session_state.pipe)
+        gc.collect()
+        torch.mps.empty_cache()
+        st.info('Garbage collected and cache emptied')
+
 
     if submitted:
+        # clearing mem
+        if 'pipe' in st.session_state:
+            del st.session_state.pipe
+        if 'adaptor' in st.session_state:
+            del st.session_state.adapter
+
+        dtype = torch.float16
         with st.status("Loading Model"):
             st.write("Loading adapter...")
-            st.session_state.adapter = MotionAdapter().to(device, dtype)
-            st.session_state.adapter.load_state_dict(load_file(hf_hub_download(repo, ckpt), device=device))
+            if st.session_state.model_type =='lightning':
+                repo = "ByteDance/AnimateDiff-Lightning"
+                ckpt = f"animatediff_lightning_{st.session_state.step}step_diffusers.safetensors"
+                st.session_state.adapter = MotionAdapter().to(st.session_state.device, dtype)
+                st.session_state.adapter.load_state_dict(load_file(hf_hub_download(repo, ckpt), device=st.session_state.device))
+            elif st.session_state.model_type == 'original':
+                # TODO version matching
+                version_matcher = {
+                    'v1': "guoyww/animatediff-motion-adapter-v1-5",
+                    'v2': "guoyww/animatediff-motion-adapter-v1-5-2",
+                    'v3': "guoyww/animatediff-motion-adapter-v1-5-3" ,
+                }
+                repo = version_matcher[st.session_state.version]
+                st.session_state.adapter = MotionAdapter.from_pretrained(repo).to(st.session_state.device)
+
             st.write("Loading pipe...")
-            st.session_state.pipe = AnimateDiffPipeline.from_pretrained(base, motion_adapter=st.session_state.adapter, torch_dtype=dtype).to(device)
-            st.session_state.pipe.scheduler = EulerDiscreteScheduler.from_config(st.session_state.pipe.scheduler.config, timestep_spacing="trailing",
-                                                            beta_schedule="linear")
+            st.session_state.pipe = AnimateDiffPipeline.from_pretrained(st.session_state.base,
+                                                                        motion_adapter=st.session_state.adapter,
+                                                                        torch_dtype=dtype,
+                                                                        ).to(st.session_state.device)
+            if st.session_state.model_type == 'lightning':
+                st.session_state.pipe.scheduler = EulerDiscreteScheduler.from_config(
+                    st.session_state.pipe.scheduler.config,
+                    timestep_spacing="trailing",
+                    beta_schedule="linear")
+            elif st.session_state.model_type == 'original':
+                st.session_state.pipe.scheduler = DDIMScheduler.from_pretrained(
+                    st.session_state.base,
+                    subfolder="scheduler",
+                    clip_sample=False,
+                    timestep_spacing="linspace",
+                    steps_offset=1)
+
+
             # # enable memory savings
             # st.session_state.pipe.enable_vae_slicing()
             # st.session_state.pipe.enable_model_cpu_offload()
+            st.session_state.pipe.enable_attention_slicing()
+
         st.success("Model Loaded")
 
     with st.form('MotionLoRA'):
@@ -101,7 +162,10 @@ with st.form("t2i"):
 if generate:
     output = None
     if 'pipe' in st.session_state:
-        with st.spinner("Generating GIF..."):
+
+        start = time.perf_counter()
+        with st.status("Generating..."):
+            st.write("Inferencing..")
             output = st.session_state.pipe(
                 prompt=prompt,
                 negative_prompt=negative_prompt,
@@ -109,9 +173,11 @@ if generate:
                 guidance_scale=guidance_scale,
                 num_frames=num_frames,
             )
+            st.write("Exporting..")
             export_to_gif(output.frames[0], "../animation.gif")
         if output:
-            st.success("GIF Generated")
+            time_taken = (time.perf_counter() - start)
+            st.success(f"GIF Generated (Time taken: {time_taken:.2f}sec)")
 
         file_ = open("../animation.gif", "rb")
         contents = file_.read()
